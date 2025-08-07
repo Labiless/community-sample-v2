@@ -6,55 +6,70 @@ import { Howl } from 'howler'
 const socket = io('http://localhost:3000')
 const ROLE = 'player';
 
-const recording = ref(false)
-const recordedAudio = ref(null)
-const mediaRecorder = ref(null)
-const audioChunks = ref([])
-const pressTimer = ref(null)
-const longPressTriggered = ref(false)
-const audioInstance = ref(null)
+let mediaRecorder = null;
+let sampleBlob = null;
+let jamBlob = null;
+let sampleAudioChunks = [];
+let jamAudioChunks = [];
+let samplePlayer = null;
+let audioContext = null;
+let destination = null;
+let recorderGainNode = null;
+
+let pressTimer = null;
+let longPressTriggered = false;
+let interval = null;
+
+const recordedAudio = ref(null);
+const isRecording = ref(false)
 const countdown = ref(0);
-const interval = ref(null);
-const samplePlayer = ref(null)
+const isJamming = ref(false);
 
 onMounted(() => {
   socket.on('connect', () => {
     socket.emit('set_role', ROLE)
     console.log('🎹 Player connesso:', socket.id)
   })
+
+  socket.on('start_jam', () => {
+    startJam();
+  });
+
+  socket.on('stop_jam', () => {
+    stopJam();
+  })
 })
 
 const startRecording = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream)
+    sampleAudioChunks = []
 
-    mediaRecorder.value = new MediaRecorder(stream)
-    audioChunks.value = []
-
-    mediaRecorder.value.ondataavailable = (event) => {
+    mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
-        audioChunks.value.push(event.data)
+        sampleAudioChunks.push(event.data)
       }
     }
 
-    mediaRecorder.value.onstop = () => {
-      const blob = new Blob(audioChunks.value, { type: 'audio/wav' })
-      recordedAudio.value = URL.createObjectURL(blob)
+    mediaRecorder.onstop = () => {
+      sampleBlob = new Blob(sampleAudioChunks, { type: 'audio/wav' })
+      recordedAudio.value = URL.createObjectURL(sampleBlob)
 
-      // 🎧 Crea un nuovo Howl per riproduzione
-      if (samplePlayer.value) {
-        samplePlayer.value.unload() // distrugge il precedente
+      if (samplePlayer) {
+        samplePlayer.unload() // distrugge il precedente
       }
 
-      samplePlayer.value = new Howl({
+      samplePlayer = new Howl({
         src: [recordedAudio.value],
         format: ['wav'],
         html5: true // utile per compatibilità mobile
       })
+
     }
 
-    mediaRecorder.value.start()
-    recording.value = true
+    mediaRecorder.start()
+    isRecording.value = true
   } catch (err) {
     console.error('🎙️ Errore microfono:', err)
     alert('Errore nell’accesso al microfono.')
@@ -62,54 +77,104 @@ const startRecording = async () => {
 }
 
 const stopRecording = () => {
-  if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
-    mediaRecorder.value.stop()
-    recording.value = false
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+    isRecording.value = false
   }
 }
 
 const playSample = () => {
-  if (samplePlayer.value) {
-    samplePlayer.value.stop()
-    samplePlayer.value.seek(0.3) 
-    samplePlayer.value.play()
+  if (samplePlayer) {
+    samplePlayer.stop()
+    samplePlayer.seek(0)
+    samplePlayer.play()
     console.log('▶️ Playback Howler')
   }
 }
 
 const handleMouseDown = () => {
-  longPressTriggered.value = false
-  pressTimer.value = setTimeout(() => {
-    interval.value = setInterval(() => {
+  longPressTriggered = false
+  pressTimer = setTimeout(() => {
+    interval = setInterval(() => {
       countdown.value -= 1;
       if (countdown.value == 0) {
         startRecording()
-        clearInterval(interval.value)
+        clearInterval(interval)
       }
     }, 700)
-    longPressTriggered.value = true
+    longPressTriggered = true
     countdown.value = 3;
   }, 500)
 }
 
 const handleMouseUp = () => {
-  clearTimeout(pressTimer.value)
-  if (longPressTriggered.value) {
+  clearTimeout(pressTimer);
+  if (longPressTriggered) {
     countdown.value = 0;
-    clearInterval(interval.value)
+    clearInterval(interval)
     stopRecording()
   } else {
     playSample()
   }
 }
+
+const startJam = () => {
+
+  audioContext = new (window.AudioContext || window.webkitAudioContext)()
+  recorderGainNode = audioContext.createGain()
+  destination = audioContext.createMediaStreamDestination()
+
+  const node = samplePlayer._sounds[0]._node
+  const source = audioContext.createMediaElementSource(node)
+
+  source.connect(recorderGainNode)
+  recorderGainNode.connect(audioContext.destination)
+  recorderGainNode.connect(destination)
+
+  // MediaRecorder per registrare lo stream
+  mediaRecorder = new MediaRecorder(destination.stream)
+
+  jamAudioChunks = [];
+
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) {
+      jamAudioChunks.push(e.data)
+    }
+  }
+  mediaRecorder.onstop = () => {
+    jamBlob = new Blob(jamAudioChunks, { type: 'audio/wav' })
+    recordedAudio.value = URL.createObjectURL(jamBlob);
+    //sendAudioToServer();
+  }
+
+  mediaRecorder.start()
+  isJamming.value = true;
+
+}
+
+const stopJam = () => {
+  isJamming.value = false;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
+}
+
+const sendAudioToServer = async () => {
+  socket.emit('send-audio', {
+    filename: 'sample.wav',
+    buffer: await jamBlob.arrayBuffer()
+  })
+}
 </script>
 
 <template>
-  <div class="flex w-full h-[100vh] justify-center items-center">
+  <div :class="isJamming ? 'bg-amber-600' : 'bg-transparent'"
+    class="transition-all flex w-full h-[100vh] justify-center items-center flex-col">
     <button @mousedown="handleMouseDown" @mouseup="handleMouseUp" @touchstart.prevent="handleMouseDown"
       @touchend.prevent="handleMouseUp" class="w-50 h-50 rounded-full text-white text-lg transition duration-300"
-      :class="recording ? 'bg-red-600' : 'bg-green-600'">
+      :class="isRecording ? 'bg-red-600' : 'bg-green-600'">
       <p v-if="countdown" class="bold text-8xl">{{ countdown }}</p>
     </button>
+    <audio controls v-if="recordedAudio" :src="recordedAudio"></audio>
   </div>
 </template>

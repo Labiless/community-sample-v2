@@ -13,8 +13,8 @@ export default defineConfig({
     vueDevTools(),
     tailwindcss(),
   ],
-   base: '/',
-     build: {
+  base: '/',
+  build: {
     outDir: 'dist'
   },
   resolve: {
