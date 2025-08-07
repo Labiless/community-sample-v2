@@ -3,7 +3,8 @@ import { onMounted, ref } from 'vue'
 import { io } from 'socket.io-client'
 import { Howl } from 'howler'
 
-const socket = io('http://localhost:3000')
+//const socket = io('http://localhost:3000')
+const socket = io('https://community-sample-v2-production.up.railway.app/')
 const ROLE = 'player';
 
 let mediaRecorder = null;
