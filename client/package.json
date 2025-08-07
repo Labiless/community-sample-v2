@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
+    "howler": "^2.2.4",
     "pinia": "^3.0.3",
+    "recorder-js": "^1.0.7",
     "socket.io-client": "^4.8.1",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"

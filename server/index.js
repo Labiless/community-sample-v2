@@ -4,6 +4,7 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -13,16 +14,20 @@ const io = new Server(server, {
   },
 });
 
+
+const distPath = path.join(__dirname, '..', 'client', 'dist')
+app.use(express.static(distPath))
+
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Server is up!");
-});
+app.get('/', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
 
-app.get("/api/ping", (req, res) => {
-  res.json({ message: "pong from server" });
-});
+app.get('/player', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
 
 const socketRoles = {};
 
