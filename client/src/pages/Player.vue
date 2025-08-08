@@ -3,9 +3,10 @@ import { onMounted, ref } from 'vue'
 import { io } from 'socket.io-client'
 import { Howl } from 'howler'
 
-//const URL = import.meta.env.SOCKET_URL;
+// CHANGE IN PROD
 //const socket = io("http://localhost:3000")
 const socket = io('https://community-sample-v2-production.up.railway.app/')
+
 const ROLE = 'player';
 
 let socketId = null;
@@ -14,19 +15,20 @@ let sampleBlob = null;
 let jamBlob = null;
 let sampleAudioChunks = [];
 let jamAudioChunks = [];
-let samplePlayer = null;
 let audioContext = null;
 let destination = null;
 let recorderGainNode = null;
 
 let pressTimer = null;
-let longPressTriggered = false;
 let interval = null;
 
 const recordedAudio = ref(null);
 const isRecording = ref(false)
-const countdown = ref(0);
+let samplePlayer = ref(null);
 const isJamming = ref(false);
+const longPressTriggered = ref(false);
+const clicked = ref(false);
+const isMic = ref(false);
 
 onMounted(() => {
   socket.on('connect', () => {
@@ -44,6 +46,12 @@ onMounted(() => {
   })
 })
 
+const askForMic = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+    isMic.value = true;
+}
+
 const startRecording = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -60,16 +68,17 @@ const startRecording = async () => {
       sampleBlob = new Blob(sampleAudioChunks, { type: 'audio/wav' })
       recordedAudio.value = URL.createObjectURL(sampleBlob)
 
-      if (samplePlayer) {
-        samplePlayer.unload() // distrugge il precedente
+      if (samplePlayer.value) {
+        samplePlayer.value.unload() // distrugge il precedente
       }
 
-      samplePlayer = new Howl({
+      samplePlayer.value = new Howl({
         src: [recordedAudio.value],
         format: ['wav'],
         html5: true // utile per compatibilità mobile
       })
       stream.getTracks().forEach(track => track.stop())
+      isRecording.value = false
     }
 
     mediaRecorder.start()
@@ -88,33 +97,31 @@ const stopRecording = () => {
 }
 
 const playSample = () => {
-  if (samplePlayer) {
-    samplePlayer.stop()
-    samplePlayer.seek(0.2)
-    samplePlayer.play()
+  if (samplePlayer.value) {
+    samplePlayer.value.stop()
+    samplePlayer.value.seek(0.2)
+    samplePlayer.value.play()
     console.log('▶️ Playback Howler')
   }
 }
 
 const handleMouseDown = () => {
-  longPressTriggered = false
+  clicked.value = true;
+  longPressTriggered.value = false
   pressTimer = setTimeout(() => {
-    interval = setInterval(() => {
-      countdown.value -= 1;
-      if (countdown.value == 0) {
-        startRecording()
-        clearInterval(interval)
-      }
-    }, 700)
-    longPressTriggered = true
-    countdown.value = 3;
-  }, 500)
+    if(samplePlayer.value && samplePlayer.value.playing()){
+      samplePlayer.value.stop()
+    }
+    startRecording()
+    longPressTriggered.value = true
+  }, 700)
 }
 
 const handleMouseUp = () => {
+  clicked.value = false;
   clearTimeout(pressTimer);
-  if (longPressTriggered) {
-    countdown.value = 0;
+  if (longPressTriggered.value) {
+    longPressTriggered.value = false
     clearInterval(interval)
     stopRecording()
   } else {
@@ -128,7 +135,7 @@ const startJam = () => {
   recorderGainNode = audioContext.createGain()
   destination = audioContext.createMediaStreamDestination()
 
-  const node = samplePlayer._sounds[0]._node
+  const node = samplePlayer.value._sounds[0]._node
   const source = audioContext.createMediaElementSource(node)
 
   source.connect(recorderGainNode)
@@ -172,13 +179,39 @@ const sendAudioToServer = async () => {
 </script>
 
 <template>
-  <div :class="isJamming ? 'bg-amber-600' : 'bg-transparent'"
-    class="transition-all flex w-full h-[100vh] justify-center items-center flex-col">
+  <div v-if="!isMic" class="absolute left-0 top-0 w-full h-[100vh] bg-black text-white flex justify-center">
+    <button @click="askForMic">Clicca qui per attivare il microfono</button>
+  </div>
+  <div :class="isJamming ? 'bg-purple-700' : 'bg-transparent'"
+    class="flex w-full h-[100vh] justify-center items-center flex-col">
+    <p class="font-bold text-white mb-8">COMMUNITY SAMPLE</p>
     <button @mousedown="handleMouseDown" @mouseup="handleMouseUp" @touchstart.prevent="handleMouseDown"
-      @touchend.prevent="handleMouseUp" class="w-50 h-50 rounded-full text-white text-lg transition duration-300"
-      :class="isRecording ? 'bg-red-600' : 'bg-green-600'">
-      <p v-if="countdown" class="bold text-8xl">{{ countdown }}</p>
+      @touchend.prevent="handleMouseUp" class="w-44 h-44 rounded-3xl text-white text-lg duration-300"
+      :class="isRecording ? 'bg-red-600 pulse rounded-full' : 'bg-green-600 rounded-3xl', clicked ? 'scale-110 shadow' : ''">
+      <p v-if="isRecording" class="relative m-auto bg-white w-16 h-16 rounded-full text-6xl"></p>
+      <p v-if="samplePlayer && !isRecording" class="left-1 relative text-6xl">▶</p>
     </button>
-    <audio controls v-if="recordedAudio" :src="recordedAudio"></audio>
+    <audio controls v-if="false" :src="recordedAudio"></audio>
   </div>
 </template>
+
+<style>
+
+.pulse {
+  --scale: 1.1;        /* quanto ingrandire (1.1 = +10%) */
+  --duration: 1.5s;    /* durata di un ciclo */
+  animation: pulse var(--duration) ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(0.9); }
+  50%      { transform: scale(var(--scale)); }
+}
+
+.shadow{
+  box-shadow: 0px 0px 70px rgb(1, 141, 255);
+}
+
+</style>

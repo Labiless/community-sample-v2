@@ -38,7 +38,13 @@ let audioTracksName = [];
 const PLAYER_ROLE = "player";
 const MASTER_ROLE = "master";
 
+// CHANGE IN PROD
 const dataDir = path.resolve('/app/data');
+//const dataDir = path.join(__dirname, 'uploads')
+
+const clearDir = () => {
+  fs.rmSync(dataDir, { recursive: true, force: true }); 
+}
 
 io.on("connection", (socket) => {
 
@@ -102,6 +108,7 @@ io.on("connection", (socket) => {
       io.to(masterId).emit('final_track', { masterId, wav: finalTrack });
 
       console.log(`Mix creato e inviato: ${outputPath}`);
+      clearDir();
 
     } catch (err) {
       console.error('Errore nel mix:', err);
