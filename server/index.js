@@ -89,12 +89,13 @@ io.on("connection", (socket) => {
       // Salvataggio su disco
       const outputPath = path.join(__dirname, 'uploads', `final.wav`);
       fs.writeFileSync(outputPath, finalTrack);
+      io.to(masterId).emit('final_track', { masterId, wav: finalTrack });
+      
+      console.log(`Mix creato e inviato: ${outputPath}`);
 
-      console.log(`Mix creato: ${outputPath}`);
     } catch (err) {
       console.error('Errore nel mix:', err);
     }
-
   })
 
   socket.on("disconnect", () => {
