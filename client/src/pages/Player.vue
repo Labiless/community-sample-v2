@@ -182,7 +182,7 @@ const sendAudioToServer = async () => {
   <div v-if="!isMic" class="absolute left-0 top-0 w-full h-[100vh] bg-black text-white flex justify-center">
     <button @click="askForMic">Clicca qui per attivare il microfono</button>
   </div>
-  <div :class="isJamming ? 'bg-purple-700' : 'bg-transparent'"
+  <div :class="isJamming ? 'gradient-bg' : 'bg-transparent'"
     class="flex w-full h-[100vh] justify-center items-center flex-col">
     <p class="font-bold text-white mb-8">COMMUNITY SAMPLE</p>
     <button @mousedown="handleMouseDown" @mouseup="handleMouseUp" @touchstart.prevent="handleMouseDown"
@@ -212,6 +212,24 @@ const sendAudioToServer = async () => {
 
 .shadow{
   box-shadow: 0px 0px 70px rgb(1, 141, 255);
+}
+
+.gradient-bg {
+	background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+	background-size: 500% 500%;
+	animation: gradient 2s linear infinite;
+} 
+
+@keyframes gradient {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 300% 200%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
 }
 
 </style>
