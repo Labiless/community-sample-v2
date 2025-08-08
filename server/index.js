@@ -38,6 +38,8 @@ let audioTracksName = [];
 const PLAYER_ROLE = "player";
 const MASTER_ROLE = "master";
 
+const dataDir = path.resolve('/app/data');
+
 io.on("connection", (socket) => {
 
   // Client invia il proprio ruolo subito dopo la connessione
@@ -67,9 +69,14 @@ io.on("connection", (socket) => {
   })
 
   socket.on('send-audio', data => {
+
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
     const { sender, buffer } = data
     //const filePath = path.join(__dirname, 'uploads', `${sender}.wav`)
-    const filePath = path.join('app/data/uploads', `${sender}.wav`)
+    const filePath = path.join(dataDir, `${sender}.wav`)
 
     audioTracksName.push(filePath);
 
@@ -89,11 +96,11 @@ io.on("connection", (socket) => {
 
       // Salvataggio su disco
       //const outputPath = path.join(__dirname, 'uploads', `final.wav`);
-      const outputPath = path.join('app/data/uploads', `final.wav`);
+      const outputPath = path.join(dataDir, `final.wav`);
 
       fs.writeFileSync(outputPath, finalTrack);
       io.to(masterId).emit('final_track', { masterId, wav: finalTrack });
-      
+
       console.log(`Mix creato e inviato: ${outputPath}`);
 
     } catch (err) {
