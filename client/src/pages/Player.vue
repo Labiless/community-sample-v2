@@ -3,10 +3,12 @@ import { onMounted, ref } from 'vue'
 import { io } from 'socket.io-client'
 import { Howl } from 'howler'
 
-//const socket = io('http://localhost:3000')
-const socket = io('https://community-sample-v2-production.up.railway.app/')
+//const URL = import.meta.env.SOCKET_URL;
+const socket = io("http://localhost:3000")
+//const socket = io('https://community-sample-v2-production.up.railway.app/')
 const ROLE = 'player';
 
+let socketId = null;
 let mediaRecorder = null;
 let sampleBlob = null;
 let jamBlob = null;
@@ -30,6 +32,7 @@ onMounted(() => {
   socket.on('connect', () => {
     socket.emit('set_role', ROLE)
     console.log('🎹 Player connesso:', socket.id)
+    socketId = socket.id
   })
 
   socket.on('start_jam', () => {
@@ -66,7 +69,7 @@ const startRecording = async () => {
         format: ['wav'],
         html5: true // utile per compatibilità mobile
       })
-
+      stream.getTracks().forEach(track => track.stop())
     }
 
     mediaRecorder.start()
@@ -87,7 +90,7 @@ const stopRecording = () => {
 const playSample = () => {
   if (samplePlayer) {
     samplePlayer.stop()
-    samplePlayer.seek(0)
+    samplePlayer.seek(0.2)
     samplePlayer.play()
     console.log('▶️ Playback Howler')
   }
@@ -144,8 +147,8 @@ const startJam = () => {
   }
   mediaRecorder.onstop = () => {
     jamBlob = new Blob(jamAudioChunks, { type: 'audio/wav' })
-    recordedAudio.value = URL.createObjectURL(jamBlob);
-    //sendAudioToServer();
+    //recordedAudio.value = URL.createObjectURL(jamBlob);
+    sendAudioToServer();
   }
 
   mediaRecorder.start()
@@ -162,7 +165,7 @@ const stopJam = () => {
 
 const sendAudioToServer = async () => {
   socket.emit('send-audio', {
-    filename: 'sample.wav',
+    sender: socketId,
     buffer: await jamBlob.arrayBuffer()
   })
 }

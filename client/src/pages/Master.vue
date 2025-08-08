@@ -2,8 +2,9 @@
 import { onMounted, ref } from 'vue'
 import { io } from 'socket.io-client'
 
-//const socket = io('http://localhost:3000')
-const socket = io('https://community-sample-v2-production.up.railway.app/')
+//const URL = import.meta.env.SOCKET_URL
+const socket = io("http://localhost:3000")
+//const socket = io('https://community-sample-v2-production.up.railway.app/')
 const ROLE = 'master';
 const isRecording = ref(false);
 
@@ -27,7 +28,9 @@ const stopRecording = () => {
   isRecording.value = false;
   socket.emit('stop_jam')
 }
-
+const mixTrack = () => {
+  socket.emit('mix_track')
+}
 
 </script>
 
@@ -36,5 +39,6 @@ const stopRecording = () => {
     <h1 class="text-white text-4xl">🎛️ Master Page</h1>
     <button @click="starRecording" v-if="!isRecording" class="text-xl text-white bg-green-500 p-4 rounded-4xl my-4">start</button>
     <button @click="stopRecording" v-else class="text-xl text-white bg-red-500 p-4 rounded-4xl my-4">stop</button>
+    <button @click="mixTrack" class="text-xl text-white bg-orange-500 p-4 rounded-4xl my-4">mix track</button>
   </div>
 </template>

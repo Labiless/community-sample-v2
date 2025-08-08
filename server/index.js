@@ -3,8 +3,10 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-require("dotenv").config();
+const { mixFilesToWav } = require('./mixer');
 const path = require('path');
+const fs = require('fs')
+require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
@@ -31,6 +33,7 @@ app.get('/player', (req, res) => {
 //websocket
 let playersId = [];
 let masterId = undefined;
+let audioTracksName = [];
 
 const PLAYER_ROLE = "player";
 const MASTER_ROLE = "master";
@@ -64,21 +67,34 @@ io.on("connection", (socket) => {
   })
 
   socket.on('send-audio', data => {
-    const { filename, buffer } = data
+    const { sender, buffer } = data
+    const filePath = path.join(__dirname, 'uploads', `${sender}.wav`)
 
-    // Salva il file sul disco
-    const fs = require('fs')
-    const path = require('path')
+    audioTracksName.push(filePath);
 
-    const filePath = path.join(__dirname, 'uploads', filename)
-
-    fs.writeFile(filePath, Buffer.from(buffer), err => {
+    fs.writeFile(filePath, buffer, err => {
       if (err) {
-        console.error('Errore salvataggio audio:', err)
+        console.error('Errore salvataggio:', err)
       } else {
-        console.log('✅ Audio ricevuto e salvato in:', filePath)
+        console.log('✅ File audio salvato:', filePath)
       }
     })
+    console.log("recived track from:", sender)
+  })
+
+  socket.on('mix_track', async (data) => {
+    try {
+      const finalTrack = await mixFilesToWav(audioTracksName);
+
+      // Salvataggio su disco
+      const outputPath = path.join(__dirname, 'uploads', `final.wav`);
+      fs.writeFileSync(outputPath, finalTrack);
+
+      console.log(`Mix creato: ${outputPath}`);
+    } catch (err) {
+      console.error('Errore nel mix:', err);
+    }
+
   })
 
   socket.on("disconnect", () => {
