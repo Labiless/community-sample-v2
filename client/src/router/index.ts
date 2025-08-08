@@ -6,8 +6,9 @@ import MasterPage from '../pages/Master.vue';
 import PlayerPage from '../pages/Player.vue';
 
 const routes = [
-  { path: '/', component: MasterPage },
-  { path: '/player', component: PlayerPage }
+  { path: '/', component: PlayerPage },
+  { path: '/player', component: PlayerPage },
+  { path: '/master', component: MasterPage }
 ]
 
 const router = createRouter({

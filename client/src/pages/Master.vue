@@ -3,11 +3,11 @@ import { onMounted, ref } from 'vue'
 import { io } from 'socket.io-client'
 import QrcodeVue from 'qrcode.vue';
 
-const qrCodeUrl = 'https://community-sample-v2-production.up.railway.app/player';
+const qrCodeUrl = 'communitysample.up.railway.app';
 
 // CHANGE IN PROD
 //const socket = io("http://localhost:3000")
-const socket = io('https://community-sample-v2-production.up.railway.app/')
+const socket = io('communitysample.up.railway.app')
 
 const ROLE = 'master';
 const isRecording = ref(false);

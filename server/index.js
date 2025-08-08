@@ -29,6 +29,10 @@ app.get('/', (req, res) => {
 app.get('/player', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'))
 })
+app.get('/master', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
+
 
 //websocket
 let playersId = [];
