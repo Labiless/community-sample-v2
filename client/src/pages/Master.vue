@@ -48,14 +48,15 @@ const mixTrack = () => {
 <template>
   <div class="flex w-full h-[100vh] justify-center items-center flex-col" :class="isRecording ? 'gradient-bg' : ''">
     <h1 class="text-white text-4xl font-black">COMMUNITY SAMPLE</h1>
-    <QrcodeVue class="m-4" :value="qrCodeUrl" :size="250" level="L" />
+    <p class="text-white">communitysample.up.railway.app</p>
+    <QrcodeVue class="m-4 p-4 bg-orange-500 rounded-2xl" :value="qrCodeUrl" :size="250" level="L" />
     <div class="flex">
       <button @click="starRecording" v-if="!isRecording"
-        class="text-xl font-bold uppercase text-white bg-green-500 p-4 rounded-4xl my-4">start</button>
+        class="text-xl font-bold uppercase text-white bg-green-500 p-4 rounded-2xl my-4">start</button>
       <button @click="stopRecording" v-else
-        class="text-xl font-bold uppercase text-white bg-red-500 p-4 rounded-4xl my-4">stop</button>
+        class="text-xl font-bold uppercase text-white bg-red-500 p-4 rounded-2xl my-4">stop</button>
       <button @click="mixTrack"
-        class="text-xl font-bold uppercase text-white bg-orange-500 p-4 rounded-4xl my-4 ml-4">mix track</button>
+        class="text-xl font-bold uppercase text-white bg-orange-500 p-4 rounded-2xl my-4 ml-4">mix track</button>
     </div>
     <div v-if="isLoading" class="loading mt-4"></div>
     <audio controls v-if="finalTrack" :src="finalTrack"></audio>
