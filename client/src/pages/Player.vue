@@ -4,8 +4,8 @@ import { io } from 'socket.io-client'
 import { Howl } from 'howler'
 
 //const URL = import.meta.env.SOCKET_URL;
-const socket = io("http://localhost:3000")
-//const socket = io('https://community-sample-v2-production.up.railway.app/')
+//const socket = io("http://localhost:3000")
+const socket = io('https://community-sample-v2-production.up.railway.app/')
 const ROLE = 'player';
 
 let socketId = null;
