@@ -68,7 +68,8 @@ io.on("connection", (socket) => {
 
   socket.on('send-audio', data => {
     const { sender, buffer } = data
-    const filePath = path.join(__dirname, 'uploads', `${sender}.wav`)
+    //const filePath = path.join(__dirname, 'uploads', `${sender}.wav`)
+    const filePath = path.join('/data/uploads', `${sender}.wav`)
 
     audioTracksName.push(filePath);
 
@@ -87,7 +88,9 @@ io.on("connection", (socket) => {
       const finalTrack = await mixFilesToWav(audioTracksName);
 
       // Salvataggio su disco
-      const outputPath = path.join(__dirname, 'uploads', `final.wav`);
+      //const outputPath = path.join(__dirname, 'uploads', `final.wav`);
+      const outputPath = path.join('/data/uploads', `final.wav`);
+
       fs.writeFileSync(outputPath, finalTrack);
       io.to(masterId).emit('final_track', { masterId, wav: finalTrack });
       
